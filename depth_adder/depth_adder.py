@@ -8,9 +8,14 @@ import numpy as np
 from torch.autograd import Function
 
 import sys
+import os
 
 sys.path.append('./depth_adder/')
-import depth_adder_cuda
+if "CUDA_HOME" in os.environ:
+    import depth_adder_cuda
+else:
+    import depth_adder_cpp
+
 import depth_adder, quantize
 #from .quantize import calculate_qparams, quantize, quantize_grad, QuantMeasure
 #import deepshift.ste as ste
@@ -19,12 +24,24 @@ from quantize import quantize, quantize_grad, QuantMeasure, calculate_qparams
 #import deepshift.ste as ste
 
 from torch.utils.cpp_extension import load
-try:
-    depth_adder_cuda = load(
-      'depth_adder_cuda', ['../depth_adder/depth_adder_cuda.cpp', '../depth_adder/depth_adder_cuda_kernel.cu'], verbose=True)
-except:
-    depth_adder_cuda = load(
-      'depth_adder_cuda', ['./depth_adder/depth_adder_cuda.cpp', './depth_adder/depth_adder_cuda_kernel.cu'], verbose=True)
+if "CUDA_HOME" in os.environ:
+    depth_adder_kernel = load(
+        'depth_adder_cuda', 
+        [
+            '../depth_adder/depth_adder_cuda.cpp', 
+            '../depth_adder/depth_adder_cuda_kernel.cu'
+        ], 
+        verbose=True
+    )
+else:
+    depth_adder_kernel = load(
+        'depth_adder_cpp', 
+        [
+            '../depth_adder/depth_adder.cpp', 
+            '../depth_adder/depth_adder_kernel.cu'
+        ], 
+        verbose=True
+    )
 
 
 def get_conv2d_output_shape(input, weight, stride, padding):
@@ -249,7 +266,7 @@ class DepthAdder2DFunction(torch.autograd.Function):
 
         output = input.new_zeros(
             get_conv2d_output_shape(input, weight, stride, padding))
-        depth_adder_cuda.forward(input,
+        depth_adder_kernel.forward(input,
                            weight,
                            output,
                            kernel_size, kernel_size,
@@ -273,7 +290,7 @@ class DepthAdder2DFunction(torch.autograd.Function):
         # input
         if ctx.needs_input_grad[0]:
             grad_input = torch.zeros_like(input)
-            depth_adder_cuda.backward_input(grad_output,
+            depth_adder_kernel.backward_input(grad_output,
                                       input,
                                       weight,
                                       grad_input,
@@ -284,7 +301,7 @@ class DepthAdder2DFunction(torch.autograd.Function):
         # weight
         if ctx.needs_input_grad[1]:
             grad_weight = torch.zeros_like(weight)
-            depth_adder_cuda.backward_weight(grad_output,
+            depth_adder_kernel.backward_weight(grad_output,
                                        input,
                                        weight,
                                        grad_weight,
