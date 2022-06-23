@@ -101,3 +101,35 @@ int depth_adder_forward(
 	return 1;
 }
 
+int depth_adder_backward_grad_in(
+	torch::Tensor &grad_out,
+	torch::Tensor &input,
+	torch::Tensor &weight,
+	torch::Tensor &grad_in,
+	int KW, int KH,
+	int SW, int SH,
+	int PW, int PH
+) {
+	/* To be implemented if needed, only forward implemented for FINN */
+	grad_in = torch::zeros(
+		{grad_in.size(0), grad_in.size(1), grad_in.size(2), grad_in.size(3)}
+	);
+	return 1;
+}
+
+int depth_adder_backward_grad_weight(
+	torch::Tensor &grad_out,
+	torch::Tensor &input,
+	torch::Tensor &weight,
+	torch::Tensor &grad_weight,
+	int KW, int KH,
+	int SW, int SH,
+	int PW, int PH
+) {
+	/* To be implemented if needed, only forward implemented for FINN */
+	grad_weight = torch::zeros(
+		{grad_weight.size(0), grad_weight.size(1), grad_weight.size(2)}
+	);
+	return 1;
+}
+
