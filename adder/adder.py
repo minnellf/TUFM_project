@@ -273,7 +273,7 @@ class Adder2DFunction(torch.autograd.Function):
 
         output = input.new_zeros(
             get_conv2d_output_shape(input, weight, stride, padding))
-        adder_cuda.forward(input,
+        adder_kernel.forward(input,
                            weight,
                            output,
                            kernel_size, kernel_size,
@@ -304,7 +304,7 @@ class Adder2DFunction(torch.autograd.Function):
         # input
         if ctx.needs_input_grad[0]:
             grad_input = torch.zeros_like(input)
-            adder_cuda.backward_input(grad_output,
+            adder_kernel.backward_input(grad_output,
                                       input,
                                       weight,
                                       grad_input,
@@ -315,7 +315,7 @@ class Adder2DFunction(torch.autograd.Function):
         # weight
         if ctx.needs_input_grad[1]:
             grad_weight = torch.zeros_like(weight)
-            adder_cuda.backward_weight(grad_output,
+            adder_kernel.backward_weight(grad_output,
                                        input,
                                        weight,
                                        grad_weight,
