@@ -15,12 +15,12 @@ if "CUDA_HOME" in os.environ:
 else:
     import depth_adder_cpp
 
-if "ADDER_HOME" in os.environ:
-        ADDER_HOME = os.environ["ADDER_HOME"]
+if "DEPTH_ADDER_HOME" in os.environ:
+        DEPTH_ADDER_HOME = os.environ["DEPTH_ADDER_HOME"]
 else:
-    ADDER_HOME = "./depth_adder"
+    DEPTH_ADDER_HOME = "./depth_adder"
 
-sys.path.append(ADDER_HOME)
+sys.path.append(DEPTH_ADDER_HOME)
 
 import depth_adder, quantize
 #from .quantize import calculate_qparams, quantize, quantize_grad, QuantMeasure
@@ -34,8 +34,8 @@ if "CUDA_HOME" in os.environ:
     depth_adder_kernel = load(
         'depth_adder_cuda', 
         [
-            ADDER_HOME + '/depth_adder_cuda.cpp',
-            ADDER_HOME + '/depth_adder_cuda_kernel.cu'
+            DEPTH_ADDER_HOME + '/depth_adder_cuda.cpp',
+            DEPTH_ADDER_HOME + '/depth_adder_cuda_kernel.cu'
         ], 
         verbose=True
     )
@@ -43,7 +43,7 @@ else:
     depth_adder_kernel = load(
         'depth_adder_cpp', 
         [
-            ADDER_HOME + '/depth_adder.cpp',
+            DEPTH_ADDER_HOME + '/depth_adder.cpp',
         ], 
         verbose=True
     )
