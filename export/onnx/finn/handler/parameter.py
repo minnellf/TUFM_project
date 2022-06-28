@@ -13,6 +13,7 @@ from ..function.parameter import QuantizedConvNdFn
 from ..utils import finn_datatype
 
 QuantConvNd = Union[QuantConv1d, QuantConv2d]
+QuantAddNd = QuantAdd2d
 
 
 class FINNQuantWBIOLHandler(FINNQuantIOHandler, ABC):
@@ -167,7 +168,57 @@ class FINNQuantConv2dHandler(FINNQuantConvNdHandler, Kernel2dApplHandlerMixin):
             quant_weight_scale = quant_weight_scale.view(1, -1, 1, 1)
         return quant_weight_scale
 
-class FINNQuantAdd2dHandler(FINNQuantConvNdHandler, Kernel2dApplHandlerMixin):
+class FINNQuantAddNdHandler(FINNQuantWBIOLHandler, ABC):
+
+    @staticmethod
+    def quant_output_shape(module: QuantAddNd):
+        shape = FINNQuantWBIOLHandler.quant_output_shape(module)
+        if shape is None:
+            raise RuntimeError("Caching of output shapes is required to export QuantAddNd")
+        return shape
+
+    @staticmethod
+    def maybe_int_bias(module: QuantWBIOL):
+        if module.bias is not None:
+            if module.is_bias_quant_enabled:
+                bias = module.int_bias(float_datatype=True)
+            else:
+                bias = module.bias
+            bias_shape = [1] * len(module.weight.shape)
+            bias_shape[1] = -1
+            # shape should broadcast with activations along channel dim
+            bias = bias.view(bias_shape).detach()
+        else:
+            bias = None
+        return bias
+
+    def prepare_for_export(self, module: QuantAddNd):
+        self.validate(module)
+        maybe_int_bias = self.maybe_int_bias(module)
+        maybe_quant_bias_scale = self.maybe_quant_bias_scale(module)
+        if (maybe_quant_bias_scale is not None
+                and len(maybe_quant_bias_scale.shape) > 0
+                and len(maybe_quant_bias_scale.view(-1)) > 1):
+            maybe_quant_bias_scale = maybe_quant_bias_scale.view_as(maybe_int_bias)
+        self.symbolic_kwargs = {
+            'W': self.int_weight(module),
+            'w_qnt_scale': self.quant_weight_scale(module),
+            'b_qnt_scale': maybe_quant_bias_scale,
+            'w_qnt_type': self.quant_weight_type(module),
+            'b_qnt_type': self.maybe_quant_bias_type(module),
+            'out_shape': self.quant_output_shape(module),
+            'pads': self.padding(module),
+            'strides': self.stride(module),
+            'bias': maybe_int_bias,
+            'kernel_shape': list(module.kernel_size),
+            'groups': module.groups,
+            'dilations': self.dilation(module)}
+
+    def symbolic_execution(self, inp: Tensor):
+        ret = QuantizedAddNdFn.apply(inp, *self.symbolic_kwargs.values())
+        return ret
+
+class FINNQuantAdd2dHandler(FINNQuantAddNdHandler, Kernel2dApplHandlerMixin):
     handled_layer = QuantAdd2d
 
     @staticmethod

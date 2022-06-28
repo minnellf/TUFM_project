@@ -276,7 +276,7 @@ class Adder2DFunction(torch.autograd.Function):
         adder_kernel.forward(input,
                            weight,
                            output,
-                           kernel_size, kernel_size,
+                           kernel_size[0], kernel_size[1],
                            stride, stride,
                            padding, padding)
 
@@ -308,7 +308,7 @@ class Adder2DFunction(torch.autograd.Function):
                                       input,
                                       weight,
                                       grad_input,
-                                      kernel_size, kernel_size,
+                                      kernel_size[0], kernel_size[1],
                                       stride, stride,
                                       padding, padding)
 
@@ -319,7 +319,7 @@ class Adder2DFunction(torch.autograd.Function):
                                        input,
                                        weight,
                                        grad_weight,
-                                       kernel_size, kernel_size,
+                                       kernel_size[0], kernel_size[1],
                                        stride, stride,
                                        padding, padding)
             grad_weight = eta * np.sqrt(grad_weight.numel()) / torch.norm(grad_weight) * grad_weight
@@ -348,6 +348,7 @@ class Adder2D(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
+        print(self.kernel_size)
         self.eta = eta
         self.dilation=dilation
         self.quantize = quantize
@@ -362,7 +363,7 @@ class Adder2D(nn.Module):
 
         self.adder = torch.nn.Parameter(
             nn.init.normal_(torch.randn(
-                out_channels,in_channels,kernel_size,kernel_size)))
+                out_channels,in_channels,kernel_size[0],kernel_size[1])))
         self.qadder = None
         self.bias = bias
         if bias:

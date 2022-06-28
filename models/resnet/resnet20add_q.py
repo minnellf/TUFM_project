@@ -228,9 +228,3 @@ def resnet20_add_vis(num_classes=10, quantize=False, weight_bits=8, sparsity=0, 
 def LeNet_add_vis(num_classes=10, **kwargs):
     return LeNet_vis(num_classes=num_classes)
 
-print('Summary\n')
-from torchinfo import summary
-
-model = resnet20_add().cuda()
-
-summary(model,input_size=(1,3,32,32))   

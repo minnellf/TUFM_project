@@ -84,7 +84,7 @@ class QuantAdd2d(QuantWBIOL, adder.Adder2D):
             self,
             in_channels=in_channels,
             out_channels=out_channels,
-            kernel_size=kernel_size[0],
+            kernel_size=kernel_size,
             stride=stride,
             padding=padding,
             dilation=dilation,
