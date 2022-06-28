@@ -39,43 +39,36 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
 }
 
 int adder_forward(
-	const torch::Tensor &input,
-	const torch::Tensor &weight,
-	// const torch::Tensor &bias,
-	torch::Tensor &output,
+	const at::Tensor &input,
+	const at::Tensor &weight,
+	// const at::Tensor &bias,
+	at::Tensor &output,
 	int KW, int KH,
 	int SW, int SH,
 	int PW, int PH
 ) {
 
 	int B = input.size(0);
-	int CI = input.size(1);
-	int CO = output.size(1);
+	int CI = weight.size(1);
+	int CO = weight.size(0);
 	int IH = input.size(2);
 	int IW = input.size(3);
-	int OH = input.size(2);
-	int OW = input.size(3);
-	int image_offset0;
-	int out_image_offset0;
-	int weight_offset0;
-	auto value = torch::zeros({1});
-	
+	int OH = output.size(2);
+	int OW = output.size(3);
+	auto value = at::zeros({1});
+
 	for (int b = 0; b < B; b++)
 	{
 		for (int co = 0; co < CO; co++)
-		{		
-			out_image_offset0 = b*CO*IH*IW + co*IH*IW;
+		{
 			for (int oh = 0; oh < OH; oh++)
-			{		
+			{
 				for (int ow = 0; ow < OW; ow++)
-				{		
+				{
 					for (int ci = 0; ci < CI; ci++)
-					{		
-						image_offset0 = b*CI*IH*IW + ci*IH*IW;
-						weight_offset0 = co*CI*KH*KW + ci*KH*KW;
+					{
 
-
-						value = torch::zeros({1});
+						value = at::zeros({1});
 
 						for (int kh = 0; kh < KH; kh++)
 						{
@@ -89,17 +82,17 @@ int adder_forward(
 								if (boundary_condition)
 								{
 									// value += input[image_offset0 + h * IW + w] * (*p_weight);
-									value -= abs(input[image_offset0 + h * IW + w] - (weight[weight_offset0 + kh*KW + kh]));
+									value[0] -= abs(input[b][ci][h][w] - (weight[co][ci][kh][kw]));
 								}
 								else // padded area
 								{
-									value -= abs(weight[weight_offset0 + kh*KW + kh]);
+									value[0] -= abs(weight[co][ci][kh][kw]);
 								}
 							}
 						}
 					}
 
-					output[out_image_offset0 + oh*OW + ow] = value;
+					output[b][co][oh][ow] = value[0];
 				}
 			}
 		}
