@@ -16,7 +16,7 @@ def conv3x3(in_planes, out_planes, stride=1, quantize=False, weight_bits=8, spar
     wbit=16
     abit=32
 #A
-    return QuantAdd2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=None)
+    return QuantAdd2d(in_planes, out_planes, kernel_size=(3,3), stride=stride, padding=1, bias=None)
 
 
 class BasicBlock(nn.Module):
@@ -62,9 +62,7 @@ class ResNet(nn.Module):
         self.sparsity = sparsity
         self.quantize_v = quantize_v
         self.inplanes = 16
-        self.wbit=16
-        self.abit=32
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = QuantConv2d(3, 16, kernel_size=(3, 3), stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(block, 16, layers[0])
@@ -72,7 +70,8 @@ class ResNet(nn.Module):
         self.layer3 = self._make_layer(block, 64, layers[2], stride=2)
         self.avgpool = nn.AvgPool2d(8, stride=1)
         # use conv as fc layer (addernet)
-        self.fc = nn.Conv2d(64 * block.expansion, num_classes, 1, bias=False)
+        self.fc = QuantConv2d(64 * block.expansion, num_classes,
+                kernel_size=(1, 1), bias=False)
         self.bn2 = nn.BatchNorm2d(num_classes)
 
 
@@ -90,7 +89,8 @@ class ResNet(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             #print('ciao')
             downsample = nn.Sequential(
-                QuantAdd2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=None), # adder.Adder2D
+                QuantAdd2d(self.inplanes, planes * block.expansion,
+                    kernel_size=(1, 1), stride=stride, bias=None), # adder.Adder2D
                 nn.BatchNorm2d(planes * block.expansion)
             )
 
@@ -128,7 +128,7 @@ class ResNet_vis(nn.Module):
         self.weight_bits = weight_bits
         self.sparsity = sparsity
         self.inplanes = 16
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = QuantConv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(block, 16, layers[0])

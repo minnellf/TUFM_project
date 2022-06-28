@@ -84,7 +84,7 @@ class QuantAdd2d(QuantWBIOL, adder.Adder2D):
             self,
             in_channels=in_channels,
             out_channels=out_channels,
-            kernel_size=kernel_size,
+            kernel_size=kernel_size[0],
             stride=stride,
             padding=padding,
             dilation=dilation,
@@ -150,7 +150,7 @@ class QuantAdd2d(QuantWBIOL, adder.Adder2D):
         max_uint_input = max_int(bit_width=input_bit_width, signed=False, narrow_range=False)
         max_kernel_val = self.weight_quant.max_uint_value(weight_bit_width)
         group_size = self.out_channels // self.groups
-        kernel_size = self.kernel_size * self.kernel_size
+        kernel_size = self.kernel_size[0] * self.kernel_size[1]
         max_uint_output = max_uint_input * max_kernel_val * kernel_size * group_size
         max_output_bit_width = ceil_ste(torch.log2(max_uint_output))
         return max_output_bit_width
