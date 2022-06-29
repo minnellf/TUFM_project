@@ -10,6 +10,7 @@ from brevitas.export.onnx.handler import Kernel2dApplHandlerMixin, Kernel1dApplH
 from .base import FINNQuantIOHandler
 from ..function.parameter import QuantizedLinearFn
 from ..function.parameter import QuantizedConvNdFn
+from ..function.parameter import QuantizedAddNdFn
 from ..utils import finn_datatype
 
 QuantConvNd = Union[QuantConv1d, QuantConv2d]
