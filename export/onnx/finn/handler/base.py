@@ -85,3 +85,13 @@ class FINNQuantIOHandler(FINNQuantInputHandler, ABC):
         if cached_out is not None:
             return cached_out.shape
         return None
+
+    @staticmethod
+    def quant_output_type(module: QuantLayerMixin):
+        output_bit_width_tensor = FINNQuantIOHandler.quant_output_bit_width_tensor(module)
+        output_signed = FINNQuantIOHandler.quant_output_signed(module)
+        if output_bit_width_tensor is not None and output_signed is not None:
+            return finn_datatype(output_bit_width_tensor, output_signed)
+        else:
+            return None
+
