@@ -62,10 +62,16 @@ class QuantizedAddNdFn(Function):
 
     @staticmethod
     def symbolic(
-            g, x, W, w_qnt_scale, b_qnt_scale, w_qnt_type, b_qnt_type, out_shape, pads, strides,
+            g, x, W, i_qnt_scale, o_qnt_scale, i_qnt_bw, o_qnt_bw, w_qnt_scale, b_qnt_scale, w_qnt_type, b_qnt_type, out_shape, pads, strides,
             bias, kernel_shape, groups, dilations):
         ret = g.op(
-            f'{DOMAIN_STRING}::QuantAdd2d', x, W,
+            f'{DOMAIN_STRING}::Quant', x,
+                i_qnt_scale,
+                0,
+                i_qnt_bw
+            )
+        ret = g.op(
+            f'{DOMAIN_STRING}::QuantAdd2d', ret, W,
             weight_qnt_s=w_qnt_type,
             kernel_shape_i=kernel_shape,
             pads_i=pads,
@@ -82,6 +88,12 @@ class QuantizedAddNdFn(Function):
                 ret = g.op('Mul', ret, b_qnt_scale)
             else:
                 ret = g.op('Add', ret, bias)
+        ret = g.op(
+            f'{DOMAIN_STRING}::Quant', ret,
+                o_qnt_scale,
+                0,
+                o_qnt_bw
+            )
         return ret
 
     @staticmethod
