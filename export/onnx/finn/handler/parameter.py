@@ -23,8 +23,8 @@ class FINNQuantWBIOLHandler(FINNQuantIOHandler, ABC):
     def validate(module: QuantWBIOL):
         assert module.is_weight_quant_enabled
         # MOD: Enabling input and output quantization
-        not assert module.is_input_quant_enabled
-        not assert module.is_output_quant_enabled
+        assert module.is_input_quant_enabled
+        assert module.is_output_quant_enabled
         if module.is_bias_quant_enabled:
             assert module.bias_quant.requires_input_scale
 
