@@ -22,8 +22,9 @@ class FINNQuantWBIOLHandler(FINNQuantIOHandler, ABC):
     @staticmethod
     def validate(module: QuantWBIOL):
         assert module.is_weight_quant_enabled
-        assert not module.is_input_quant_enabled
-        assert not module.is_output_quant_enabled
+        # MOD: Enabling input and output quantization
+        assert module.is_input_quant_enabled
+        assert module.is_output_quant_enabled
         if module.is_bias_quant_enabled:
             assert module.bias_quant.requires_input_scale
 
@@ -203,6 +204,10 @@ class FINNQuantAddNdHandler(FINNQuantWBIOLHandler, ABC):
             maybe_quant_bias_scale = maybe_quant_bias_scale.view_as(maybe_int_bias)
         self.symbolic_kwargs = {
             'W': self.int_weight(module),
+            'i_qnt_scale': self.quant_input_scale(module),
+            'o_qnt_scale': self.quant_output_scale(module),
+            'i_qnt_type': self.quant_input_type(module),
+            'o_qnt_type': self.quant_output_type(module),
             'w_qnt_scale': self.quant_weight_scale(module),
             'b_qnt_scale': maybe_quant_bias_scale,
             'w_qnt_type': self.quant_weight_type(module),
