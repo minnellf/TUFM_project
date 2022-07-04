@@ -90,12 +90,12 @@ class QuantizedAddNdFn(Function):
                 ret = g.op('Mul', ret, b_qnt_scale)
             else:
                 ret = g.op('Add', ret, bias)
-        # ret = g.op(
-        #     f'{DOMAIN_STRING}::Quant', ret,
-        #         o_qnt_scale,
-        #         zero_tensor,
-        #         o_qnt_bw
-        #     )
+        ret = g.op(
+            f'{DOMAIN_STRING}::Quant', ret,
+                o_qnt_scale,
+                zero_tensor,
+                o_qnt_bw
+            )
         return ret
 
     @staticmethod
