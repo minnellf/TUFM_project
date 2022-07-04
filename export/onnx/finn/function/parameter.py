@@ -98,6 +98,6 @@ class QuantizedAddNdFn(Function):
 
     @staticmethod
     def forward(
-            ctx, x, W, w_qnt_scale, b_qnt_scale, w_qnt_type, b_qnt_type, out_shape, pads, strides,
+            ctx, x, W, i_qnt_scale, o_qnt_scale, i_qnt_bw, o_qnt_bw, w_qnt_scale, b_qnt_scale, w_qnt_type, b_qnt_type, out_shape, pads, strides,
             bias, kernel_shape, groups, dilations):
         return torch.empty(out_shape, dtype=torch.float, device=x.device)
