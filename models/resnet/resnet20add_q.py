@@ -1,6 +1,3 @@
-# 2020.01.10-Replaced conv with adder
-#            Huawei Technologies Co., Ltd. <foss@huawei.com>
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,6 +12,7 @@ from brevitas.nn import QuantIdentity
 from brevitas.nn import QuantAvgPool2d
 from brevitas.inject.defaults import Int8ActPerTensorFloat
 from brevitas.inject.defaults import Uint8ActPerTensorFloat
+from brevitas.quant import Int8Bias as BiasQuant
 
 def conv3x3(in_planes, out_planes, stride=1, quantize=False, weight_bits=8, sparsity=0, quantize_v='sbm'):
     " 3x3 convolution with padding "
@@ -25,8 +23,11 @@ def conv3x3(in_planes, out_planes, stride=1, quantize=False, weight_bits=8, spar
         kernel_size=(3,3), 
         stride=stride, 
         padding=1,
-        input_quant=Int8ActPerTensorFloat,
-        output_quant=Int8ActPerTensorFloat,
+        #input_quant=Int8ActPerTensorFloat,
+        #output_quant=Int8ActPerTensorFloat,
+        weight_bit_width=weight_bits,
+        #bias_quant=BiasQuant,
+        return_quant_tensor=True,
         bias=None,)
 
 
@@ -36,17 +37,18 @@ class BasicBlock(nn.Module):
     def __init__(self, inplanes, planes, stride=1, downsample=None, quantize=False, weight_bits=8, sparsity=0, quantize_v='sbm'):
         #print('stride ',stride)
         super(BasicBlock, self).__init__()
+        self.id1 = QuantIdentity(bit_width=8, return_quant_tensor=True)
         self.conv1 = conv3x3(inplanes, planes, stride=stride, quantize=quantize, weight_bits=weight_bits, sparsity=sparsity, quantize_v=quantize_v)
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu1 = QuantReLU(
-            inplace=True, bit_width=8, act_quant=Int8ActPerTensorFloat
+            bit_width=8, return_quant_tensor=True
         )
         self.relu2 = QuantReLU(
-            inplace=True, bit_width=8, act_quant=Int8ActPerTensorFloat
+            bit_width=8, return_quant_tensor=True 
         )
         self.conv2 = conv3x3(planes, planes, quantize=quantize, weight_bits=weight_bits, sparsity=sparsity, quantize_v=quantize_v)
         self.bn2 = nn.BatchNorm2d(planes)
-        self.id2 = QuantIdentity(act_quant=Int8ActPerTensorFloat)
+        self.id2 = QuantIdentity(bit_width=8, return_quant_tensor=True)
         self.downsample = downsample
         self.stride = stride
 
@@ -61,13 +63,13 @@ class BasicBlock(nn.Module):
         out = self.bn2(out)
         
         # MOD: Adding identity layer to have quantization in after second batchnorm
-        out = self.id2(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
             #print(out.shape)
             #print(residual.shape)
-        out += residual
+        out = self.id2(out)
+        out += self.id2(residual)
         out = self.relu2(out)
 
         return out
@@ -88,16 +90,18 @@ class ResNet(nn.Module):
             kernel_size=(3, 3), 
             stride=1, 
             padding=1, 
-            input_quant=Int8ActPerTensorFloat,
-            output_quant=Int8ActPerTensorFloat,
+            weight_bit_width=8,
+            return_quant_tensor=True,
             bias=False
         )
         self.bn1 = nn.BatchNorm2d(16)
-        self.relu = QuantReLU(inplace=True, bit_width=8, act_quant=Int8ActPerTensorFloat)
+        self.relu = QuantReLU(
+            bit_width=8, return_quant_tensor=True 
+        )
         self.layer1 = self._make_layer(block, 16, layers[0])
         self.layer2 = self._make_layer(block, 32, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 64, layers[2], stride=2)
-        self.id = QuantIdentity(act_quant=Int8ActPerTensorFloat)
+        self.id = QuantIdentity(bit_width=8, return_quant_tensor=True)
         #self.avgpool = QuantAvgPool2d(8, stride=1)
         #self.avgpool = nn.AvgPool2d(8, stride=1)
         self.avgpool = nn.MaxPool2d(8, stride=1)
@@ -106,11 +110,11 @@ class ResNet(nn.Module):
             64 * block.expansion, 
             num_classes,
             kernel_size=(1, 1), 
-            input_quant=Int8ActPerTensorFloat,
-            output_quant=Int8ActPerTensorFloat,
+            weight_bit_width=8,
+            return_quant_tensor=True,
             bias=False
         )
-        self.bn2 = nn.BatchNorm2d(num_classes)
+        #self.bn2 = nn.BatchNorm2d(num_classes)
 
 
         # init (new add)
@@ -131,12 +135,15 @@ class ResNet(nn.Module):
                     self.inplanes, planes * block.expansion,
                     kernel_size=(1, 1), 
                     stride=stride, 
-                    input_quant=Int8ActPerTensorFloat,
-                    output_quant=Int8ActPerTensorFloat,
+                    #input_quant=Int8ActPerTensorFloat,
+                    #output_quant=Int8ActPerTensorFloat,
+                    weight_bit_width=8,
+                    #bias_quant=BiasQuant,
+                    return_quant_tensor=True,
                     bias=None
                 ), # adder.Adder2D
-                nn.BatchNorm2d(planes * block.expansion),
-                QuantIdentity()
+                #nn.BatchNorm2d(planes * block.expansion),
+                QuantIdentity(bit_width=8, return_quant_tensor=True)
             )
 
         layers = []
